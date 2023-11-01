@@ -113,6 +113,11 @@ class FlxAnim implements IFlxDestroyable
 	 */
 	public var symbolType(get, set):SymbolT;
 
+	/**
+	 * Animation name on the last anim.play() call
+	 */
+	var lastPlayedAnim:String = null;
+
 	var _parent:FlxAnimate;
 
 	var _tick:Float;
@@ -185,6 +190,7 @@ class FlxAnim implements IFlxDestroyable
 				
 				curInstance = curThing.instance;
 			}
+			lastPlayedAnim = Name;
 		}
 		
 

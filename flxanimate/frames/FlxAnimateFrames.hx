@@ -15,6 +15,7 @@ import flixel.math.FlxPoint;
 import flixel.math.FlxRect;
 import flxanimate.data.SpriteMapData.AnimateAtlas;
 import flxanimate.data.SpriteMapData.AnimateSpriteData;
+import flxanimate.data.AnimationData.AnimAtlas;
 import openfl.Assets;
 import openfl.display.BitmapData;
 import flixel.system.FlxAssets.FlxGraphicAsset;
@@ -24,6 +25,8 @@ import haxe.xml.Access;
 import haxe.xml.Fast as Access;
 #end
 import flixel.graphics.frames.FlxFrame;
+
+using StringTools;
 
 class FlxAnimateFrames extends FlxAtlasFrames
 {
@@ -54,7 +57,7 @@ class FlxAnimateFrames extends FlxAtlasFrames
             #end
             var imagemap:Map<String, Bytes> = new Map();
             var jsonMap:Map<String, AnimateAtlas> = new Map();
-            var thing = (zip != null) ? zip :  Zip.unzip(Zip.readZip(Assets.getBytes(Path)));
+            var thing = (zip != null) ? zip :  Zip.unzip(Zip.readZip(#if sys sys.io.File.getBytes(Path) #else Assets.getBytes(Path) #end));
 			for (list in thing)
 			{
                 if (haxe.io.Path.extension(list.fileName) == "json")
@@ -85,7 +88,12 @@ class FlxAnimateFrames extends FlxAtlasFrames
         }
         else
         {
+            #if sys
+            var texts = sys.FileSystem.readDirectory(Path).filter((text) -> text.startsWith('spritemap') && text.toLowerCase().endsWith('.json'));
+            for(i in 0...texts.length) texts[i] = '$Path/' + texts[i];
+            #else
             var texts = Assets.list(TEXT).filter((text) -> StringTools.startsWith(text, '$Path/spritemap'));
+            #end
             if (texts.length > 1)
             {
                 texts.sort(function (a, b)
@@ -101,12 +109,20 @@ class FlxAnimateFrames extends FlxAtlasFrames
             var spritemaps:Array<{image:BitmapData, json:AnimateAtlas}> = [];
             for (text in texts)
             {
+                #if sys
+                var txt = sys.io.File.getContent(text);
+                #else
                 var txt = Assets.getText(text);
+                #end
                 if (txt.charCodeAt(0) == 0xFEFF)
                     txt = txt.substring(1);
                 var json:AnimateAtlas = haxe.Json.parse(txt);
 
+                #if sys
+                spritemaps.push({image: BitmapData.fromFile('$Path/${json.meta.image}'), json: json});
+                #else
                 spritemaps.push({image: Assets.getBitmapData('$Path/${json.meta.image}'), json: json});
+                #end
             }
             
             for (spritemap in spritemaps)
@@ -158,10 +174,10 @@ class FlxAnimateFrames extends FlxAtlasFrames
      */
     public static function fromSparrow(Path:FlxSparrow, ?Image:FlxGraphicAsset):FlxAtlasFrames
 	{
-        if (Path is String && !Assets.exists(Path))
+        if (Path is String && #if sys !sys.FileSystem.exists(Path) && #end !Assets.exists(Path))
 			return null;
 
-		var data:Access = new Access((Path is String) ? Xml.parse(Assets.getText(Path)).firstElement() : Path.firstElement());
+		var data:Access = new Access((Path is String) ? Xml.parse(#if sys sys.io.File.getContent(Path) #else Assets.getText(Path) #end).firstElement() : Path.firstElement());
         if (Image == null)
         {
             if (Path is String)
@@ -218,6 +234,37 @@ class FlxAnimateFrames extends FlxAtlasFrames
 
 		return frames;
 	}
+
+    /**
+     * 
+     * @param Data the Json/XML file content/string
+     * @param Image the image which the file is referencing **WARNING:** if you set the path as a json, it's obligatory to set the image!
+     * @return A new instance of `FlxAtlasFrames`
+     */
+    public static function fromAnimateAtlas(Data:AnimateAtlas, Image:FlxGraphicAsset):FlxAnimateFrames
+    {
+        var frames:FlxAnimateFrames = new FlxAnimateFrames();
+        var graphic = FlxG.bitmap.add(Image);
+        var spritemapFrames = FlxAtlasFrames.findFrame(graphic);
+        if (spritemapFrames == null)
+        {
+            spritemapFrames = new FlxAnimateFrames();
+            for (curSprite in Data.ATLAS.SPRITES)
+            {
+                spritemapFrames.pushFrame(textureAtlasHelper(graphic, curSprite.SPRITE, Data.meta));
+            }
+        }
+        graphic.addFrameCollection(spritemapFrames);
+        frames.concat(spritemapFrames);
+
+        if (frames.frames == [])
+        {
+            FlxG.log.error("the Frames parsing couldn't parse any of the frames, it's completely empty! \n Maybe you misspelled the Path?");
+            return null;
+        }
+        return frames;
+    }
+
     /**
      * 
      * @param Path the Json in specific, can be the path of it or the actual json
@@ -228,7 +275,8 @@ class FlxAnimateFrames extends FlxAtlasFrames
     {
         if (Path is String && !Assets.exists(Path))
             return null;
-        var data:JsonNormal = (Path is String) ? haxe.Json.parse(Assets.getText(Path)) : Path;
+
+        var data:JsonNormal = (Path is String) ? haxe.Json.parse(#if sys sys.io.File.getContent(Path) #else Assets.getText(Path) #end) : Path;
         if (Image == null)
         {
             if (Path is String)

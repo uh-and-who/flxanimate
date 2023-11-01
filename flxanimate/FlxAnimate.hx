@@ -27,6 +27,9 @@ import flixel.math.FlxMatrix;
 import openfl.geom.ColorTransform;
 import flixel.math.FlxMath;
 import flixel.FlxBasic;
+import flixel.system.FlxAssets.FlxGraphicAsset;
+
+using StringTools;
 
 typedef Settings = {
 	?ButtonSettings:Map<String, flxanimate.animate.FlxAnim.ButtonSettings>,
@@ -95,7 +98,7 @@ class FlxAnimate extends FlxSprite
 
 	public function loadAtlas(Path:String)
 	{
-		if (!Assets.exists('$Path/Animation.json') && haxe.io.Path.extension(Path) != "zip")
+		if(haxe.io.Path.extension(Path) != "zip" && #if sys !sys.FileSystem.exists('$Path/Animation.json') #else !Assets.exists('$Path/Animation.json') #end )
 		{
 			FlxG.log.error('Animation file not found in specified path: "$path", have you written the correct path?');
 			return;
@@ -536,7 +539,11 @@ class FlxAnimate extends FlxSprite
 		var jsontxt:AnimAtlas = null;
 		if (haxe.io.Path.extension(Path) == "zip")
 		{
+			#if sys
+			var thing = Zip.readZip(sys.io.File.getBytes(Path));
+			#else
 			var thing = Zip.readZip(Assets.getBytes(Path));
+			#end
 			
 			for (list in Zip.unzip(thing))
 			{
@@ -552,9 +559,77 @@ class FlxAnimate extends FlxSprite
 		}
 		else
 		{
+			#if sys
+			jsontxt = haxe.Json.parse(sys.io.File.getContent('$Path/Animation.json'));
+			#else
 			jsontxt = haxe.Json.parse(openfl.Assets.getText('$Path/Animation.json'));
+			#end
 		}
 
 		return jsontxt;
+	}
+
+	public function loadAtlasEx(img:FlxGraphicAsset, pathOrStr:String = null, myJson:Dynamic = null)
+	{
+		var animJson:AnimAtlas = null;
+		if(myJson is String)
+		{
+			var trimmed:String = pathOrStr.trim();
+			trimmed = trimmed.substr(trimmed.length - 5).toLowerCase();
+
+			if(trimmed == '.json') myJson = sys.io.File.getContent(myJson); //is a path
+			animJson = cast haxe.Json.parse(_removeBOM(myJson));
+		}
+		else animJson = cast myJson;
+
+		var isXml:Null<Bool> = null;
+		var myData:Dynamic = pathOrStr;
+
+		var trimmed:String = pathOrStr.trim();
+		trimmed = trimmed.substr(trimmed.length - 5).toLowerCase();
+
+		if(trimmed == '.json') //Path is json
+		{
+			myData = _removeBOM(sys.io.File.getContent(pathOrStr));
+			isXml = false;
+		}
+		else if (trimmed.substr(1) == '.xml') //Path is xml
+		{
+			myData = _removeBOM(sys.io.File.getContent(pathOrStr));
+			isXml = true;
+		}
+
+		// Automatic if everything else fails
+		switch(isXml)
+		{
+			case true:
+				myData = Xml.parse(myData);
+			case true, false:
+				myData = haxe.Json.parse(myData);
+			case null:
+				try
+				{
+					myData = haxe.Json.parse(myData);
+					isXml = false;
+					//trace('JSON parsed successfully!');
+				}
+				catch(e)
+				{
+					myData = Xml.parse(myData);
+					isXml = true;
+					//trace('XML parsed successfully!');
+				}
+		}
+
+		anim._loadAtlas(animJson);
+		if(!isXml) frames = FlxAnimateFrames.fromAnimateAtlas(cast myData, img);
+		else frames = FlxAnimateFrames.fromSparrow(cast myData, img);
+		origin = anim.curInstance.symbol.transformationPoint;
+	}
+
+	function _removeBOM(str:String) //Removes BOM byte order indicator
+	{
+		if (str.charCodeAt(0) == 0xFEFF) str = str.substr(1); //myData = myData.substr(2);
+		return str;
 	}
 }
