@@ -604,7 +604,7 @@ class FlxAnimate extends FlxSprite
 		{
 			case true:
 				myData = Xml.parse(myData);
-			case true, false:
+			case false:
 				myData = haxe.Json.parse(myData);
 			case null:
 				try
