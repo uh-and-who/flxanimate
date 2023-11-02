@@ -156,7 +156,7 @@ class FlxAnimateFrames extends FlxAtlasFrames
         return frames;
     }
 
-    public function concat(frames:FlxFramesCollection)
+    override function concat(frames:FlxFramesCollection)
     {
         if (parents.indexOf(frames.parent) == -1)
             parents.push(frames.parent);
