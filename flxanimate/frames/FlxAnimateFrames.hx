@@ -144,7 +144,7 @@ class FlxAnimateFrames extends FlxAtlasFrames
                     }
                 }
                 graphic.addFrameCollection(spritemapFrames);
-                frames.concat(spritemapFrames);
+                frames.animateConcat(spritemapFrames);
             }
 
             if (frames.frames == [])
@@ -156,7 +156,7 @@ class FlxAnimateFrames extends FlxAtlasFrames
         return frames;
     }
 
-    override function concat(frames:FlxFramesCollection)
+    public function animateConcat(frames:FlxFramesCollection)
     {
         if (parents.indexOf(frames.parent) == -1)
             parents.push(frames.parent);
@@ -165,6 +165,7 @@ class FlxAnimateFrames extends FlxAtlasFrames
             this.frames.push(frame);
             framesHash.set(frame.name, frame);
         }
+        return this;
     }
     /**
      * Sparrow spritesheet format parser with support of both of the versions and making the image completely optional to you.
@@ -255,7 +256,7 @@ class FlxAnimateFrames extends FlxAtlasFrames
             }
         }
         graphic.addFrameCollection(spritemapFrames);
-        frames.concat(spritemapFrames);
+        frames.animateConcat(spritemapFrames);
 
         if (frames.frames == [])
         {
