@@ -1,4 +1,4 @@
-<h6> Forked flxanimate from ShadowMario, edited to be compatible with newer versions of HaxeFlixel </h6>
+<h6> <br> Forked flxanimate from ShadowMario. </br>Can be used for building older versions of Psych Engine with newer versions HaxeFlixel </h6>
 
 
 <p align="center">
