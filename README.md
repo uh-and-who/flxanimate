@@ -1,3 +1,6 @@
+<h6> Forked flxanimate from ShadowMario, edited to be compatible with newer versions of HaxeFlixel </h6>
+
+
 <p align="center">
     <img src="./logo.svg" width="500" alt="FlxAnimate's logo, constituting of the HaxeFlixel logo sliced into pieces and then 4 arrows pointing where the parts should be to create a result."/> 
 </p>
